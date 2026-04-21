@@ -6,7 +6,7 @@ namespace UzMarket.Application.Features.Payment.Queries;
 
 public record PaymentSettingsDto(
     string? CardNumber,
-    string? CardOwner,
+    string? CardHolder,
     string? BankName,
     string? Instructions,
     bool IsActive
@@ -27,7 +27,7 @@ public class GetPaymentSettingsQueryHandler(IAppDbContext db)
 
         return new PaymentSettingsDto(
             setting.CardNumber,
-            setting.CardOwner,
+            setting.CardHolder,
             setting.BankName,
             setting.Instructions,
             setting.IsActive);

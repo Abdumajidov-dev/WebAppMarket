@@ -43,8 +43,8 @@ class ApiClient:
         ) as resp:
             resp.raise_for_status()
 
-    async def get_customer_orders(self, chat_id: int, active_only: bool = False) -> list:
-        params: dict = {"chatId": chat_id, "pageSize": 20}
+    async def get_customer_orders(self, phone: str, active_only: bool = False) -> list:
+        params: dict = {"phone": phone, "pageSize": 20}
         if active_only:
             params["activeOnly"] = "true"
         async with self.session.get("/orders/customer", params=params) as resp:

@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UzMarket.Application.Common.Interfaces;
 using UzMarket.Application.Common.Models;
 using UzMarket.Application.Features.Orders.Commands;
 using UzMarket.Application.Features.Orders.DTOs;
@@ -11,8 +13,68 @@ namespace UzMarket.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/orders")]
-public class OrdersController(IMediator mediator) : ControllerBase
+public class OrdersController(IMediator mediator, IAppDbContext db) : ControllerBase
 {
+    // Bot: get orders by customer phone
+    [HttpGet("customer")]
+    public async Task<IActionResult> GetCustomerOrders(
+        [FromQuery] string? phone,
+        [FromQuery] bool activeOnly = false,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+            return Ok(ApiResponse<object>.Ok(new { items = Array.Empty<object>(), total = 0 }));
+
+        var query = db.Orders
+            .AsNoTracking()
+            .Where(o => o.CustomerPhone == phone && !o.IsDeleted);
+
+        if (activeOnly)
+            query = query.Where(o =>
+                o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled);
+
+        var items = await query
+            .OrderByDescending(o => o.CreatedAt)
+            .Take(pageSize)
+            .Select(o => new
+            {
+                o.Id, o.OrderNumber, o.Status, o.TotalAmount,
+                o.PaymentMethod, o.CreatedAt,
+                itemCount = o.Items.Count
+            })
+            .ToListAsync(ct);
+
+        return Ok(ApiResponse<object>.Ok(new { items, total = items.Count }));
+    }
+
+    // Bot: get shop contact for a given order (uses TenantId to look up Tenant)
+    [HttpGet("{id:guid}/tenant-contact")]
+    public async Task<IActionResult> GetTenantContact(Guid id, CancellationToken ct)
+    {
+        var order = await db.Orders
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (order is null) return NotFound();
+
+        var tenant = await db.Tenants
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == order.TenantId, ct);
+
+        if (tenant is null) return NotFound();
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            shopName = tenant.ShopName,
+            phone = tenant.Phone,
+            telegramChatId = tenant.TelegramChatId
+        }));
+    }
+
+
     [HttpPost]
     public async Task<IActionResult> Place([FromBody] PlaceOrderCommand command, CancellationToken ct)
     {

@@ -10,7 +10,9 @@ interface AuthUser {
 
 interface AuthStore {
   user: AuthUser | null;
+  _hasHydrated: boolean;
   setUser: (user: AuthUser | null) => void;
+  setHasHydrated: (v: boolean) => void;
   isAuthenticated: () => boolean;
 }
 
@@ -18,9 +20,16 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       user: null,
+      _hasHydrated: false,
       setUser: (user) => set({ user }),
+      setHasHydrated: (v) => set({ _hasHydrated: v }),
       isAuthenticated: () => get().user !== null,
     }),
-    { name: "uzmarket-auth" }
+    {
+      name: "uzmarket-auth",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    }
   )
 );

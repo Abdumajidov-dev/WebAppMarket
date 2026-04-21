@@ -10,7 +10,7 @@ public class PaymentSettingConfiguration : IEntityTypeConfiguration<PaymentSetti
     {
         builder.HasKey(p => p.Id);
         builder.Property(p => p.CardNumber).HasMaxLength(20).IsRequired();
-        builder.Property(p => p.CardOwner).HasMaxLength(200).IsRequired();
+        builder.Property(p => p.CardHolder).HasMaxLength(200).IsRequired();
         builder.Property(p => p.BankName).HasMaxLength(100).IsRequired();
 
         builder.HasOne(p => p.Tenant)

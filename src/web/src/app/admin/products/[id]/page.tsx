@@ -14,7 +14,7 @@ export default function EditProductPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-product", id],
     queryFn: () =>
-      api.get<ApiResponse<ProductDetail>>(`/products/${id}`).then((r) => r.data.data),
+      api.get<ApiResponse<ProductDetail>>(`/products/id/${id}`).then((r) => r.data.data),
   });
 
   if (isLoading)

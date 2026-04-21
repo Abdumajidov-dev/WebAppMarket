@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UzMarket.Application.Common.Interfaces;
 using UzMarket.Application.Common.Models;
+using UzMarket.Application.Features.Payment.Commands;
+using UzMarket.Application.Features.Payment.Queries;
 using UzMarket.Application.Features.Shop.Commands;
 using UzMarket.Application.Features.Shop.Queries;
 using UzMarket.Domain.Entities;
@@ -18,6 +20,7 @@ public class ShopController(IMediator mediator, IAppDbContext db, ITenantContext
     : ControllerBase
 {
     [HttpGet("settings")]
+    [HttpGet("info")]
     public async Task<IActionResult> GetSettings(CancellationToken ct)
     {
         var result = await mediator.Send(new GetShopSettingsQuery(), ct);
@@ -39,6 +42,22 @@ public class ShopController(IMediator mediator, IAppDbContext db, ITenantContext
         return Ok(ApiResponse<ShopStatsDto>.Ok(result));
     }
 
+    [HttpGet("payment-settings")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPaymentSettings(CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetPaymentSettingsQuery(), ct);
+        return Ok(ApiResponse<PaymentSettingsDto?>.Ok(result));
+    }
+
+    [HttpPut("payment-settings")]
+    public async Task<IActionResult> UpdatePaymentSettings(
+        [FromBody] UpdatePaymentSettingsCommand command, CancellationToken ct)
+    {
+        await mediator.Send(command, ct);
+        return NoContent();
+    }
+
     [HttpPost("logo")]
     [RequestSizeLimit(2 * 1024 * 1024)]
     public async Task<IActionResult> UploadLogo(IFormFile file, CancellationToken ct)
@@ -57,7 +76,7 @@ public class ShopController(IMediator mediator, IAppDbContext db, ITenantContext
         if (!string.IsNullOrEmpty(shop.LogoUrl))
             await storage.DeleteAsync(shop.LogoUrl, ct);
 
-        var url = await storage.UploadAsync(file.OpenReadStream(), file.FileName, file.ContentType, ct);
+        var url = await storage.UploadAsync(file.OpenReadStream(), file.FileName, file.ContentType, tenant.Slug, "banner", ct);
         shop.LogoUrl = url;
         shop.UpdatedAt = DateTime.UtcNow;
 

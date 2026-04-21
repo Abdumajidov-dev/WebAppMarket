@@ -20,9 +20,10 @@ public class TenantMiddleware(RequestDelegate next)
         var host = context.Request.Host.Host;
         var slug = host.Split('.')[0];
 
-        // Local dev: use X-Tenant-Slug header
-        if (host is "localhost" or "127.0.0.1")
-            slug = context.Request.Headers["X-Tenant-Slug"].FirstOrDefault() ?? slug;
+        // Header override: dev (localhost/IP) or subdomain-less access
+        var headerSlug = context.Request.Headers["X-Tenant-Slug"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(headerSlug))
+            slug = headerSlug;
 
         var tenant = await db.Tenants
             .AsNoTracking()

@@ -8,7 +8,7 @@ namespace UzMarket.Application.Features.Payment.Commands;
 
 public record UpdatePaymentSettingsCommand(
     string CardNumber,
-    string CardOwner,
+    string CardHolder,
     string BankName,
     string? Instructions,
     bool IsActive
@@ -19,7 +19,7 @@ public class UpdatePaymentSettingsCommandValidator : AbstractValidator<UpdatePay
     public UpdatePaymentSettingsCommandValidator()
     {
         RuleFor(x => x.CardNumber).NotEmpty().MaximumLength(20);
-        RuleFor(x => x.CardOwner).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.CardHolder).NotEmpty().MaximumLength(200);
         RuleFor(x => x.BankName).NotEmpty().MaximumLength(100);
     }
 }
@@ -37,7 +37,7 @@ public class UpdatePaymentSettingsCommandHandler(IAppDbContext db, ITenantContex
             {
                 TenantId = tenant.TenantId,
                 CardNumber = request.CardNumber,
-                CardOwner = request.CardOwner,
+                CardHolder = request.CardHolder,
                 BankName = request.BankName,
                 Instructions = request.Instructions,
                 IsActive = request.IsActive
@@ -46,7 +46,7 @@ public class UpdatePaymentSettingsCommandHandler(IAppDbContext db, ITenantContex
         else
         {
             setting.CardNumber = request.CardNumber;
-            setting.CardOwner = request.CardOwner;
+            setting.CardHolder = request.CardHolder;
             setting.BankName = request.BankName;
             setting.Instructions = request.Instructions;
             setting.IsActive = request.IsActive;

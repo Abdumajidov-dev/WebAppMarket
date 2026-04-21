@@ -38,14 +38,16 @@ services:
       Jwt__Secret: "${JWT_SECRET}"
       Jwt__Issuer: UzMarket
       Jwt__Audience: UzMarket
-      Jwt__AccessTokenExpiryMinutes: "15"
+      Jwt__AccessTokenExpiryMinutes: "1440"
       BotSecret: "${BOT_SECRET}"
       BotBaseUrl: "http://bot:8080"
-      FileStorage__Provider: Local
-      FileStorage__BasePath: /app/uploads
-      FileStorage__BaseUrl: "http://localhost:5000/uploads"
+      MediaBaseUrl: "http://10.100.104.114:3000/media"
+      Cors__AllowedOrigins__0: "http://localhost:3000"
+      Cors__AllowedOrigins__1: "http://localhost:3001"
+      Cors__AllowedOrigins__2: "http://10.100.104.114:3000"
+      Cors__AllowedOrigins__3: "http://10.100.104.114:3001"
     volumes:
-      - uploads_data:/app/uploads
+      - wwwroot_data:/app/wwwroot
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,6 +67,7 @@ services:
       REDIS_URL: "redis://redis:6379"
       WEBAPP_HOST: "0.0.0.0"
       WEBAPP_PORT: "8080"
+      WEBAPP_URL: "http://10.100.104.114:3000"
     depends_on:
       redis:
         condition: service_healthy
@@ -75,13 +78,21 @@ services:
     build:
       context: src/web
       dockerfile: Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:5000
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXT_PUBLIC_TENANT_SLUG: default
+        NEXT_PUBLIC_MEDIA_URL: /media
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:5000/api"
+      NEXT_PUBLIC_API_URL: "/api/v1"
+      NEXT_PUBLIC_TENANT_SLUG: "default"
+      NEXT_PUBLIC_MEDIA_URL: "/media"
+      API_INTERNAL_URL: "http://api:5000"
     depends_on:
       - api
 
 volumes:
   postgres_data:
-  uploads_data:
+  wwwroot_data:

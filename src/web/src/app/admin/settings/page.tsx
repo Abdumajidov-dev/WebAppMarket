@@ -14,16 +14,20 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiResponse } from "@/types";
 
-interface PaymentSettings {
-  cardNumber: string;
-  cardHolder: string;
-  bankName?: string;
-  instructions?: string;
+interface ShopSettings {
+  shopName: string;
+  ownerName: string;
+  phone: string;
+  logoUrl?: string;
+  primaryColor: string;
 }
 
-interface ShopInfo {
-  name: string;
-  logoUrl?: string;
+interface PaymentSettings {
+  cardNumber?: string;
+  cardHolder?: string;
+  bankName?: string;
+  instructions?: string;
+  isActive?: boolean;
 }
 
 const paymentSchema = z.object({
@@ -40,10 +44,10 @@ export default function SettingsPage() {
   const logoRef = useRef<HTMLInputElement>(null);
   const [logoUploading, setLogoUploading] = useState(false);
 
-  const { data: shopInfo, isLoading: shopLoading } = useQuery({
-    queryKey: ["shop-info"],
+  const { data: shopData, isLoading: shopLoading } = useQuery({
+    queryKey: ["shop-settings"],
     queryFn: () =>
-      api.get<ApiResponse<ShopInfo>>("/shop/info").then((r) => r.data.data),
+      api.get<ApiResponse<ShopSettings>>("/shop/settings").then((r) => r.data.data),
   });
 
   const { data: paymentData, isLoading: paymentLoading } = useQuery({
@@ -71,9 +75,11 @@ export default function SettingsPage() {
   const savePayment = useMutation({
     mutationFn: (data: PaymentFormData) =>
       api.put("/shop/payment-settings", {
-        ...data,
+        cardNumber: data.cardNumber,
+        cardHolder: data.cardHolder,
         bankName: data.bankName || null,
         instructions: data.instructions || null,
+        isActive: true,
       }),
     onSuccess: () => {
       toast.success("Sozlamalar saqlandi");
@@ -94,12 +100,12 @@ export default function SettingsPage() {
     setLogoUploading(true);
     try {
       const form = new FormData();
-      form.append("logo", file);
+      form.append("file", file);
       await api.post("/shop/logo", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Logo yuklandi");
-      qc.invalidateQueries({ queryKey: ["shop-info"] });
+      qc.invalidateQueries({ queryKey: ["shop-settings"] });
     } catch {
       toast.error("Yuklashda xatolik");
     } finally {
@@ -119,9 +125,9 @@ export default function SettingsPage() {
         ) : (
           <div className="flex items-center gap-4">
             <div className="relative h-20 w-20 overflow-hidden rounded-xl border bg-muted">
-              {shopInfo?.logoUrl ? (
+              {shopData?.logoUrl ? (
                 <Image
-                  src={shopInfo.logoUrl}
+                  src={shopData.logoUrl}
                   alt="Logo"
                   fill
                   className="object-contain"
@@ -133,6 +139,7 @@ export default function SettingsPage() {
               )}
             </div>
             <div className="space-y-1">
+              <p className="text-sm font-medium">{shopData?.shopName}</p>
               <Button
                 size="sm"
                 variant="outline"

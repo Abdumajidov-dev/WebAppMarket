@@ -33,9 +33,14 @@ public class UploadProductImageCommandValidator : AbstractValidator<UploadProduc
     }
 }
 
-public class UploadProductImageCommandHandler(IAppDbContext db, IFileStorageService storage)
+public class UploadProductImageCommandHandler(
+    IAppDbContext db,
+    IFileStorageService storage,
+    ITenantContext tenantContext)
     : IRequestHandler<UploadProductImageCommand, ProductImageDto>
 {
+    private const int MaxImages = 5;
+
     public async Task<ProductImageDto> Handle(UploadProductImageCommand request, CancellationToken ct)
     {
         var product = await db.Products
@@ -43,8 +48,12 @@ public class UploadProductImageCommandHandler(IAppDbContext db, IFileStorageServ
             .FirstOrDefaultAsync(p => p.Id == request.ProductId, ct)
             ?? throw new NotFoundException(nameof(Product), request.ProductId);
 
+        if (product.Images.Count >= MaxImages)
+            throw new ConflictException($"Mahsulotga maksimal {MaxImages} ta rasm qo'shish mumkin.");
+
         var url = await storage.UploadAsync(
-            request.FileStream, request.FileName, request.ContentType, ct);
+            request.FileStream, request.FileName, request.ContentType,
+            tenantContext.Slug, "product", ct);
 
         var nextOrder = product.Images.Any()
             ? product.Images.Max(i => i.SortOrder) + 1

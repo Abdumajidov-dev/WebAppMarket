@@ -18,7 +18,7 @@ import type { ApiResponse, Category, ProductDetail, ProductImage } from "@/types
 const schema = z.object({
   name: z.string().min(2, "Kamida 2 harf"),
   price: z.number().positive("Narx musbat bo'lsin"),
-  discountPrice: z.number().positive().optional(),
+  discountPrice: z.number().positive().optional().or(z.nan().transform(() => undefined)),
   stockQuantity: z.number().int().min(0, "0 dan kam bo'lmaydi"),
   categoryId: z.string().optional(),
   description: z.string().optional(),
@@ -66,18 +66,20 @@ export function ProductForm({ product }: ProductFormProps) {
     try {
       const payload = {
         ...data,
-        discountPrice: data.discountPrice ?? null,
+        id: product?.id,
+        discountPrice: data.discountPrice && !isNaN(data.discountPrice) ? data.discountPrice : null,
         categoryId: data.categoryId || null,
       };
 
       if (product) {
         await api.put(`/products/${product.id}`, payload);
         toast.success("Mahsulot yangilandi");
+        router.push("/admin/products");
       } else {
-        await api.post("/products", payload);
-        toast.success("Mahsulot qo'shildi");
+        const res = await api.post<ApiResponse<{ id: string }>>("/products", payload);
+        toast.success("Mahsulot qo'shildi. Rasm qo'shishingiz mumkin.");
+        router.push(`/admin/products/${res.data.data.id}`);
       }
-      router.push("/admin/products");
     } catch {
       toast.error("Saqlashda xatolik");
     } finally {
@@ -105,7 +107,7 @@ export function ProductForm({ product }: ProductFormProps) {
       setUploading(true);
       try {
         const form = new FormData();
-        form.append("image", file);
+        form.append("file", file);
         const res = await api.post<ApiResponse<ProductImage>>(
           `/products/${product.id}/images`,
           form,

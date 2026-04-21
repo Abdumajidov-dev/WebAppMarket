@@ -1,33 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSuperAdminStore } from "@/store/superadmin";
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const hasHydrated = useSuperAdminStore((s) => s._hasHydrated);
   const isAuthenticated = useSuperAdminStore((s) => s.isAuthenticated());
   const logout = useSuperAdminStore((s) => s.logout);
   const user = useSuperAdminStore((s) => s.user);
-  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
+    if (!hasHydrated) return;
     if (!isAuthenticated && pathname !== "/superadmin/login") {
       router.replace("/superadmin/login");
     }
-  }, [isAuthenticated, pathname, router, hydrated]);
+  }, [isAuthenticated, pathname, router, hasHydrated]);
 
   if (pathname === "/superadmin/login") {
     return <>{children}</>;
   }
 
-  if (!hydrated || !isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   return (
     <div className="flex min-h-screen bg-muted/30">
