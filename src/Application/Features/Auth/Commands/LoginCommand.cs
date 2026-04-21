@@ -8,17 +8,17 @@ using UzMarket.Domain.Exceptions;
 
 namespace UzMarket.Application.Features.Auth.Commands;
 
-public record LoginCommand(string Email, string Password) : IRequest<LoginResult>;
+public record LoginCommand(string Phone, string Password) : IRequest<LoginResult>;
 
 public record LoginResult(string AccessToken, string RefreshToken, UserDto User);
 
-public record UserDto(Guid Id, string Email, string Role, Guid TenantId);
+public record UserDto(Guid Id, string Phone, string Role, Guid TenantId);
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
     public LoginCommandValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.Phone).NotEmpty();
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
     }
 }
@@ -33,11 +33,11 @@ public class LoginCommandHandler(
     {
         var user = await db.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == request.Email.ToLower(), ct)
-            ?? throw new NotFoundException(nameof(User), request.Email);
+            .FirstOrDefaultAsync(u => u.Phone == request.Phone && !u.IsDeleted, ct)
+            ?? throw new NotFoundException(nameof(User), request.Phone);
 
         if (!hasher.Verify(request.Password, user.PasswordHash))
-            throw new ForbiddenException("Email yoki parol noto'g'ri.");
+            throw new ForbiddenException("Telefon yoki parol noto'g'ri.");
 
         var accessToken = jwt.GenerateAccessToken(user);
         var refreshTokenRaw = jwt.GenerateRefreshToken();
@@ -55,6 +55,6 @@ public class LoginCommandHandler(
         return new LoginResult(
             accessToken,
             refreshTokenRaw,
-            new UserDto(user.Id, user.Email, user.Role.ToString(), user.TenantId));
+            new UserDto(user.Id, user.Phone, user.Role.ToString(), user.TenantId));
     }
 }

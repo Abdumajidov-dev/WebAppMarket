@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using UzMarket.Application.Common.Interfaces;
 using UzMarket.Domain.Entities;
@@ -19,33 +18,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<PaymentSetting> PaymentSettings => Set<PaymentSetting>();
     public DbSet<PaymentProof> PaymentProofs => Set<PaymentProof>();
 
+    private Guid CurrentTenantId => tenantContext.TenantId;
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        foreach (var entityType in builder.Model.GetEntityTypes())
-        {
-            if (!typeof(TenantEntity).IsAssignableFrom(entityType.ClrType))
-                continue;
-
-            builder.Entity(entityType.ClrType).HasQueryFilter(
-                BuildTenantFilter(entityType.ClrType));
-        }
-    }
-
-    // Captures tenantContext instance (not its value) — filter re-evaluates per query
-    private LambdaExpression BuildTenantFilter(Type entityType)
-    {
-        var param = Expression.Parameter(entityType, "e");
-
-        var tenantIdProp = Expression.Property(param, nameof(TenantEntity.TenantId));
-        var contextExpr = Expression.Constant(tenantContext, typeof(ITenantContext));
-        var currentTenantId = Expression.Property(contextExpr, nameof(ITenantContext.TenantId));
-        var tenantEqual = Expression.Equal(tenantIdProp, currentTenantId);
-
-        var isDeletedProp = Expression.Property(param, nameof(TenantEntity.IsDeleted));
-        var notDeleted = Expression.Equal(isDeletedProp, Expression.Constant(false));
-
-        return Expression.Lambda(Expression.AndAlso(tenantEqual, notDeleted), param);
+        builder.Entity<User>().HasQueryFilter(u => u.TenantId == CurrentTenantId && !u.IsDeleted);
+        builder.Entity<Category>().HasQueryFilter(c => c.TenantId == CurrentTenantId && !c.IsDeleted);
+        builder.Entity<Product>().HasQueryFilter(p => p.TenantId == CurrentTenantId && !p.IsDeleted);
+        builder.Entity<Order>().HasQueryFilter(o => o.TenantId == CurrentTenantId && !o.IsDeleted);
+        builder.Entity<PaymentSetting>().HasQueryFilter(ps => ps.TenantId == CurrentTenantId && !ps.IsDeleted);
+        builder.Entity<PaymentProof>().HasQueryFilter(pp => pp.TenantId == CurrentTenantId && !pp.IsDeleted);
     }
 }

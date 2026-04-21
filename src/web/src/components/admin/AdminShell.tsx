@@ -76,7 +76,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="border-t p-3 space-y-1">
           {user && (
             <p className="truncate px-3 py-1 text-xs text-muted-foreground">
-              {user.email}
+              {user.phone}
             </p>
           )}
           <button

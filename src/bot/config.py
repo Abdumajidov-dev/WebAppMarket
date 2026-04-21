@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     WEBHOOK_PATH: str = "/webhook/telegram"
     WEBAPP_HOST: str = "0.0.0.0"
     WEBAPP_PORT: int = 8080
+    WEBAPP_URL: str = "http://localhost:3001"
 
 
 settings = Settings()

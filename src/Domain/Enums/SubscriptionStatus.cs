@@ -10,5 +10,6 @@ public enum SubscriptionStatus
 public enum UserRole
 {
     Owner = 0,
-    Manager = 1
+    Manager = 1,
+    SuperAdmin = 99
 }

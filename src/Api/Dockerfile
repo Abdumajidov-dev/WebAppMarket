@@ -4,6 +4,7 @@ EXPOSE 5000
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY ["NuGet.Config", "/root/.nuget/NuGet/NuGet.Config"]
 COPY ["src/Api/UzMarket.Api.csproj", "Api/"]
 COPY ["src/Application/UzMarket.Application.csproj", "Application/"]
 COPY ["src/Domain/UzMarket.Domain.csproj", "Domain/"]

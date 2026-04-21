@@ -61,11 +61,14 @@ public class AuthController(IMediator mediator) : ControllerBase
 
     private void SetRefreshCookie(string token)
     {
+        var isProduction = HttpContext.RequestServices
+            .GetRequiredService<IWebHostEnvironment>().IsProduction();
+
         Response.Cookies.Append(RefreshTokenCookie, token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
+            Secure = isProduction,
+            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(7)
         });
     }

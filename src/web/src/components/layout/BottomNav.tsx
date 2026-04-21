@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Home, Grid, ShoppingCart, Package } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ const links = [
 export function BottomNav() {
   const pathname = usePathname();
   const count = useCartStore((s) => s.count());
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
@@ -34,7 +37,7 @@ export function BottomNav() {
               >
                 <span className="relative">
                   <Icon className="h-5 w-5" />
-                  {isCart && count > 0 && (
+                  {mounted && isCart && count > 0 && (
                     <span className="absolute -right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
                       {count}
                     </span>

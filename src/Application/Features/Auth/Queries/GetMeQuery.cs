@@ -19,6 +19,6 @@ public class GetMeQueryHandler(IAppDbContext db, ICurrentUser currentUser)
             .FirstOrDefaultAsync(u => u.Id == currentUser.UserId, ct)
             ?? throw new NotFoundException(nameof(User), currentUser.UserId);
 
-        return new UserDto(user.Id, user.Email, user.Role.ToString(), user.TenantId);
+        return new UserDto(user.Id, user.Phone, user.Role.ToString(), user.TenantId);
     }
 }

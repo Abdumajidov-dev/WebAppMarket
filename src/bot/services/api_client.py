@@ -43,6 +43,25 @@ class ApiClient:
         ) as resp:
             resp.raise_for_status()
 
+    async def get_customer_orders(self, chat_id: int, active_only: bool = False) -> list:
+        params: dict = {"chatId": chat_id, "pageSize": 20}
+        if active_only:
+            params["activeOnly"] = "true"
+        async with self.session.get("/orders/customer", params=params) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+            return data.get("data", {}).get("items", [])
+
+    async def get_tenant_by_order(self, order_id: str) -> dict | None:
+        try:
+            async with self.session.get(f"/orders/{order_id}/tenant-contact") as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("data")
+        except Exception:
+            pass
+        return None
+
     async def get_product(self, product_id: str) -> dict:
         async with self.session.get(f"/products/{product_id}") as resp:
             resp.raise_for_status()

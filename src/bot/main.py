@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import sys
-from contextlib import asynccontextmanager
 
 from aiohttp import web
 from aiogram import Bot, Dispatcher
@@ -9,12 +8,13 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from redis.asyncio import Redis
 
 from config import settings
 from services.api_client import api_client
 from services.notification import notify_new_order, notify_payment_proof
 from middlewares.throttle import ThrottleMiddleware
-from routers import admin, orders, products
+from routers import admin, orders, products, customer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,10 +31,15 @@ def create_bot() -> Bot:
     )
 
 
-def create_dispatcher() -> Dispatcher:
-    storage = RedisStorage.from_url(settings.REDIS_URL)
+def create_dispatcher(redis: Redis) -> Dispatcher:
+    storage = RedisStorage(redis=redis)
     dp = Dispatcher(storage=storage)
+
+    # Redis ni handler'larga inject qilish
+    dp["redis"] = redis
+
     dp.message.middleware(ThrottleMiddleware(rate=1.0))
+    dp.include_router(customer.router)
     dp.include_router(admin.router)
     dp.include_router(orders.router)
     dp.include_router(products.router)
@@ -75,8 +80,9 @@ async def internal_notify_handler(request: web.Request) -> web.Response:
 # ── Polling mode (dev) ─────────────────────────────────────────────────────
 
 async def run_polling() -> None:
+    redis = Redis.from_url(settings.REDIS_URL)
     bot = create_bot()
-    dp = create_dispatcher()
+    dp = create_dispatcher(redis)
 
     app = web.Application()
     app["bot"] = bot
@@ -93,14 +99,16 @@ async def run_polling() -> None:
     finally:
         await api_client.close()
         await bot.session.close()
+        await redis.aclose()
         await runner.cleanup()
 
 
 # ── Webhook mode (prod) ────────────────────────────────────────────────────
 
 def create_app() -> web.Application:
+    redis = Redis.from_url(settings.REDIS_URL)
     bot = create_bot()
-    dp = create_dispatcher()
+    dp = create_dispatcher(redis)
 
     async def on_startup(app: web.Application) -> None:
         webhook_url = settings.WEBHOOK_HOST + settings.WEBHOOK_PATH
@@ -111,6 +119,7 @@ def create_app() -> web.Application:
         await bot.delete_webhook()
         await api_client.close()
         await bot.session.close()
+        await redis.aclose()
 
     app = web.Application()
     app["bot"] = bot

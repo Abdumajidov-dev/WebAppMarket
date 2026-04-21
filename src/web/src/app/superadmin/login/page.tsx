@@ -6,8 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { api, setAuthToken } from "@/lib/api";
-import { useAuthStore } from "@/store/auth";
+import { saApi, setSaAuthToken } from "@/lib/superadminApi";
+import { useSuperAdminStore } from "@/store/superadmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,9 +20,9 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function LoginPage() {
+export default function SuperAdminLoginPage() {
   const router = useRouter();
-  const setUser = useAuthStore((s) => s.setUser);
+  const setUser = useSuperAdminStore((s) => s.setUser);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -34,15 +34,16 @@ export default function LoginPage() {
   async function onSubmit(data: FormData) {
     setLoading(true);
     try {
-      const res = await api.post<
+      const res = await saApi.post<
         ApiResponse<{
           accessToken: string;
           user: { id: string; phone: string; role: string; tenantId: string };
         }>
       >("/auth/login", data);
-      setAuthToken(res.data.data.accessToken);
-      setUser(res.data.data.user);
-      router.push("/admin/dashboard");
+      const { accessToken, user } = res.data.data;
+      setSaAuthToken(accessToken);
+      setUser(user);
+      router.push("/superadmin/dashboard");
     } catch {
       toast.error("Telefon yoki parol noto'g'ri");
     } finally {
@@ -54,8 +55,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold">Admin panel</h1>
-          <p className="text-sm text-muted-foreground">Hisobingizga kiring</p>
+          <h1 className="text-2xl font-bold">UzMarket SuperAdmin</h1>
+          <p className="text-sm text-muted-foreground">Platform boshqaruv paneli</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
