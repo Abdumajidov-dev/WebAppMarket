@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p dotnet-multitenant-api.skill dotnet-multitenant-api/SKILL.md)",
+      "Bash(unzip -l dotnet-multitenant-api.skill)",
+      "Bash(unzip -p react-ecommerce-ui.skill react-ecommerce-ui/SKILL.md)",
+      "Bash(unzip -p telegram-order-bot.skill telegram-order-bot/SKILL.md)",
+      "Bash(mkdir -p /tmp/caveman-skill/caveman-token-saver)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(zip -r caveman-token-saver.skill caveman-token-saver/)",
+      "Bash(python3 -c ' *)",
+      "Bash(where python *)",
+      "Bash(ls /c/Python*)",
+      "Read(//c/Users/avazb/AppData/Local/Programs/**)",
+      "Bash(/c/Python314/python -c ' *)",
+      "Bash(cp /tmp/caveman-skill/caveman-token-saver.skill \"C:/Users/avazb/source/repos/Abdumajidov-dev/WebAppMarket/src/.claude/.skill/caveman-token-saver.skill\")",
+      "Bash(mkdir -p \"C:/Users/avazb/.claude/skills\")",
+      "Bash(cp /tmp/caveman-skill/caveman-token-saver.skill \"C:/Users/avazb/.claude/skills/caveman-token-saver.skill\")",
+      "Bash(/c/Python314/python *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)",
+      "Bash(npx create-next-app@latest Web --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(npm install *)",
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx shadcn@latest add card badge skeleton input label toast dialog sheet)",
+      "Bash(npx shadcn@latest add sonner)",
+      "Bash(npx shadcn@latest add card badge skeleton input label dialog sheet)",
+      "Bash(npm run *)"
+    ]
+  }
+}

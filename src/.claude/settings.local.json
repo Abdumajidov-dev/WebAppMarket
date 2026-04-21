@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p .skill/dotnet-multitenant-api.skill dotnet-multitenant-api/SKILL.md)",
+      "Bash(unzip *)"
+    ]
+  }
+}
