@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Image,
   Settings,
+  Bell,
   LogOut,
   Menu,
   X,
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/admin/products", label: "Mahsulotlar", icon: Package },
   { href: "/admin/categories", label: "Kategoriyalar", icon: FolderOpen },
   { href: "/admin/banners", label: "Bannerlar", icon: Image },
+  { href: "/admin/notifications", label: "Bildirishnomalar", icon: Bell },
   { href: "/admin/settings", label: "Sozlamalar", icon: Settings },
 ];
 
