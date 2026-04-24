@@ -15,5 +15,6 @@ public record CategoryTreeDto(
     string Slug,
     Guid? ParentId,
     int SortOrder,
-    List<CategoryTreeDto> Children
+    List<CategoryTreeDto> Children,
+    string? ImageUrl = null
 );

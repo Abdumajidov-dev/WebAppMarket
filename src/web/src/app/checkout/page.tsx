@@ -91,11 +91,12 @@ export default function CheckoutPage() {
         }
       );
       clear();
+      localStorage.setItem("customer_phone", data.customerPhone.replace(/\s/g, ""));
       const order = res.data.data;
       if (data.paymentMethod === "CardTransfer") {
-        router.push(`/payment/${order.id}`);
+        router.push(`/payment/${order.orderNumber}?id=${order.id}`);
       } else {
-        router.push(`/order/${order.id}`);
+        router.push(`/order/${order.orderNumber}`);
       }
     } catch {
       toast.error("Buyurtma berishda xatolik. Qayta urinib ko'ring.");

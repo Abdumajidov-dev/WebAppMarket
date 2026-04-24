@@ -45,4 +45,18 @@ public class CategoriesController(IMediator mediator) : ControllerBase
         await mediator.Send(new DeleteCategoryCommand(id), ct);
         return NoContent();
     }
+
+    [Authorize]
+    [HttpPost("{id:guid}/image")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> UploadImage(Guid id, IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(ApiResponse<string>.Fail("Fayl tanlanmagan."));
+
+        var url = await mediator.Send(
+            new UploadCategoryImageCommand(id, file.OpenReadStream(), file.FileName, file.ContentType), ct);
+
+        return Ok(ApiResponse<object>.Ok(new { url }));
+    }
 }

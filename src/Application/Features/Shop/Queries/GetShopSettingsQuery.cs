@@ -12,7 +12,8 @@ public record ShopSettingsDto(
     string Phone,
     string? LogoUrl,
     string PrimaryColor,
-    long? TelegramChatId
+    long? TelegramChatId,
+    string? TelegramUsername
 );
 
 public record GetShopSettingsQuery : IRequest<ShopSettingsDto>;
@@ -29,6 +30,6 @@ public class GetShopSettingsQueryHandler(IAppDbContext db, ITenantContext tenant
 
         return new ShopSettingsDto(
             shop.ShopName, shop.OwnerName, shop.Phone,
-            shop.LogoUrl, shop.PrimaryColor, shop.TelegramChatId);
+            shop.LogoUrl, shop.PrimaryColor, shop.TelegramChatId, shop.TelegramUsername);
     }
 }

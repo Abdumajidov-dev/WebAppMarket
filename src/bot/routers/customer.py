@@ -8,17 +8,23 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     Message, CallbackQuery,
     KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove,
+    InlineKeyboardMarkup, InlineKeyboardButton,
 )
 from redis.asyncio import Redis
 
 from config import settings
 from keyboards.reply import (
-    main_menu_kb, shop_inline_kb, lang_kb,
+    main_menu_kb, lang_kb,
     chat_type_kb, orders_for_chat_kb,
 )
 from services.api_client import api_client
 from services.user_settings import UserSettings
 from utils.i18n import t, fmt_order_line, ACTIVE_STATUSES, DONE_STATUSES
+
+# imported lazily to avoid circular import
+def _admin_router_funcs():
+    from routers.admin import is_admin, register_admin_chat, admin_menu_kb
+    return is_admin, register_admin_chat, admin_menu_kb
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -55,6 +61,23 @@ def _phone_kb() -> ReplyKeyboardMarkup:
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, redis: Redis) -> None:
+    is_admin_fn, register_admin_fn, admin_menu_kb_fn = _admin_router_funcs()
+    chat_id = message.chat.id
+
+    # Auto-register from DB if not yet in Redis
+    if not await is_admin_fn(chat_id, redis):
+        slug = await api_client.get_tenant_slug_by_chat_id(chat_id)
+        if slug:
+            await register_admin_fn(chat_id, slug, redis)
+
+    if await is_admin_fn(chat_id, redis):
+        await message.answer(
+            "🏪 <b>Admin paneli</b>\n\nXush kelibsiz!",
+            parse_mode="HTML",
+            reply_markup=admin_menu_kb_fn(),
+        )
+        return
+
     lang = await _lang(message, redis)
     await message.answer(
         t("welcome", lang),
@@ -87,6 +110,8 @@ async def got_contact(message: Message, state: FSMContext, redis: Redis) -> None
         await _show_active_orders(message, phone, lang)
     elif next_action == "history":
         await _show_history(message, phone, lang)
+    elif next_action == "chat":
+        await _do_chat_order_choose(message, state, phone, lang)
 
 
 # ── Do'kon ────────────────────────────────────────────────────────────────────
@@ -94,14 +119,14 @@ async def got_contact(message: Message, state: FSMContext, redis: Redis) -> None
 @router.message(F.text.in_({t("btn_menu", "uz"), t("btn_menu", "ru")}))
 async def open_shop(message: Message, redis: Redis) -> None:
     lang = await _lang(message, redis)
-    kb = shop_inline_kb(lang, settings.WEBAPP_URL)
-    if kb:
-        await message.answer(t("btn_menu", lang), reply_markup=kb)
-    else:
-        await message.answer(
-            f"🛍 Do'kon manzili:\n{settings.WEBAPP_URL}\n\n<i>Brauzerda oching</i>",
-            parse_mode="HTML",
-        )
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🛍 Do'konni ochish", url=settings.WEBAPP_URL)
+    ]])
+    await message.answer(
+        "🛍 <b>Do'kon</b>",
+        parse_mode="HTML",
+        reply_markup=kb,
+    )
 
 
 # ── Til ───────────────────────────────────────────────────────────────────────
@@ -188,6 +213,29 @@ async def order_history(message: Message, state: FSMContext, redis: Redis) -> No
     await _show_history(message, phone, lang)
 
 
+async def _do_chat_order_choose(message: Message, state: FSMContext, phone: str, lang: str) -> None:
+    try:
+        orders = await api_client.get_customer_orders(phone, active_only=True)
+        active = [o for o in orders if o.get("status") in ACTIVE_STATUSES]
+    except Exception:
+        logger.exception("_do_chat_order_choose phone=%s", phone)
+        active = []
+
+    if not active:
+        await state.clear()
+        await message.answer(
+            t("no_orders_for_chat", lang),
+            reply_markup=main_menu_kb(lang, settings.WEBAPP_URL),
+        )
+        return
+
+    await state.set_state(AppState.choosing_order)
+    await message.answer(
+        t("choose_order_for_chat", lang),
+        reply_markup=orders_for_chat_kb(active, lang),
+    )
+
+
 # ── Yordam / Chat ─────────────────────────────────────────────────────────────
 
 @router.message(F.text.in_({t("btn_chat", "uz"), t("btn_chat", "ru")}))
@@ -213,30 +261,19 @@ async def chat_order_choose(callback: CallbackQuery, state: FSMContext, redis: R
     lang = data.get("lang", "uz")
     phone = await _get_phone(callback.from_user.id, redis)
 
-    active: list = []
-    if phone:
-        try:
-            orders = await api_client.get_customer_orders(phone, active_only=True)
-            active = [o for o in orders if o.get("status") in ACTIVE_STATUSES]
-        except Exception:
-            logger.exception("chat_order_choose phone=%s", phone)
-
-    if not active:
-        await state.clear()
-        await callback.message.edit_text(t("no_orders_for_chat", lang))
+    if not phone:
+        await state.set_state(AppState.waiting_phone)
+        await state.update_data(next_action="chat", lang=lang)
+        await callback.message.edit_text("📱 Telefon raqamingizni ulashing:")
+        await callback.message.answer("👇", reply_markup=_phone_kb())
         await callback.answer()
         return
 
-    await state.set_state(AppState.choosing_order)
-    await callback.message.edit_text(
-        t("choose_order_for_chat", lang),
-        reply_markup=orders_for_chat_kb(active, lang),
-    )
-    await callback.answer()
+    await _do_chat_order_choose(callback.message, state, phone, lang)
 
 
 @router.callback_query(AppState.choosing_order, F.data.startswith("chat:sel:"))
-async def chat_order_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+async def chat_order_selected(callback: CallbackQuery, state: FSMContext, bot: Bot, redis: Redis) -> None:
     data = await state.get_data()
     lang = data.get("lang", "uz")
     order_id = callback.data.split(":", 2)[2]
@@ -248,16 +285,24 @@ async def chat_order_selected(callback: CallbackQuery, state: FSMContext, bot: B
         customer_name = callback.from_user.full_name
         customer_username = callback.from_user.username
         customer_id = callback.from_user.id
+        order_num = order.get("orderNumber", order_id[:8])
+
+        contact = f"@{customer_username}" if customer_username else f"ID: {customer_id}"
+        seller_msg = (
+            f"💬 <b>Mijozdan savol</b>\n\n"
+            f"Buyurtma: <b>#{order_num}</b>\n"
+            f"Mijoz: <b>{customer_name}</b>\n"
+            f"Telegram: {contact}"
+        )
+
+        # Save to Redis for admin "💬 Mijoz savollari"
+        slug = order.get("tenantSlug", "default")
+        redis_key = f"admin:messages:{slug}"
+        await redis.lpush(redis_key, seller_msg.replace("<b>", "").replace("</b>", ""))
+        await redis.ltrim(redis_key, 0, 49)  # keep last 50
 
         if seller_chat_id:
-            order_num = order.get("orderNumber", order_id[:8])
-            seller_msg = (
-                f"💬 <b>Mijozdan savol</b>\n\n"
-                f"Buyurtma: <b>#{order_num}</b>\n"
-                f"Mijoz: <b>{customer_name}</b>\n"
-            )
-            seller_msg += f"Telegram: @{customer_username}" if customer_username else f"Telegram ID: <code>{customer_id}</code>"
-            await bot.send_message(seller_chat_id, seller_msg, parse_mode="HTML")
+            await bot.send_message(int(seller_chat_id), seller_msg, parse_mode="HTML")
     except Exception:
         logger.exception("chat_order_selected order=%s", order_id)
 

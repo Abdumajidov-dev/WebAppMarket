@@ -9,11 +9,13 @@ public class Tenant : BaseEntity
     public string OwnerName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public long? TelegramChatId { get; set; }
+    public string? TelegramUsername { get; set; }
     public string? LogoUrl { get; set; }
     public string PrimaryColor { get; set; } = "#2563EB";
     public SubscriptionStatus SubscriptionStatus { get; set; } = SubscriptionStatus.Trial;
     public DateTime? SubscriptionEndsAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? OwnerUserId { get; set; }
 
     public ICollection<Product> Products { get; set; } = [];
     public ICollection<Order> Orders { get; set; } = [];

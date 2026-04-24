@@ -17,6 +17,7 @@ const schema = z.object({
   ownerName: z.string().min(2),
   phone: z.string().min(9),
   password: z.string().min(6),
+  telegramUsername: z.string().optional(),
   primaryColor: z.string().optional(),
   trialDays: z.string(),
 });
@@ -83,6 +84,10 @@ export default function NewTenantPage() {
 
         <Field label="Parol" error={errors.password?.message}>
           <Input type="password" placeholder="Kamida 6 ta belgi" {...register("password")} />
+        </Field>
+
+        <Field label="Telegram username (ixtiyoriy)" error={errors.telegramUsername?.message}>
+          <Input placeholder="@username yoki username" {...register("telegramUsername")} />
         </Field>
 
         <Field label="Asosiy rang (ixtiyoriy)" error={errors.primaryColor?.message}>

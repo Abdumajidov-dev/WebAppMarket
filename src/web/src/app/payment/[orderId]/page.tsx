@@ -1,13 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Upload, FileImage } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { ErrorState } from "@/components/common/ErrorState";
 import { PriceTag } from "@/components/common/PriceTag";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiResponse, OrderDetail } from "@/types";
@@ -15,20 +14,24 @@ import type { ApiResponse, OrderDetail } from "@/types";
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_SIZE = 5 * 1024 * 1024;
 
-export default function PaymentPage() {
-  const { orderId } = useParams<{ orderId: string }>();
+function PaymentContent() {
+  const { orderId: orderNumber } = useParams<{ orderId: string }>();
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("id") ?? "";
   const router = useRouter();
+
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["order", orderId],
+  const { data, isLoading } = useQuery({
+    queryKey: ["order-track", orderNumber],
     queryFn: () =>
       api
-        .get<ApiResponse<OrderDetail>>(`/orders/${orderId}`)
+        .get<ApiResponse<OrderDetail>>(`/orders/track/${orderNumber}`)
         .then((r) => r.data.data),
+    enabled: !!orderNumber,
   });
 
   function handleFile(f: File) {
@@ -41,15 +44,11 @@ export default function PaymentPage() {
       return;
     }
     setFile(f);
-    if (f.type !== "application/pdf") {
-      setPreview(URL.createObjectURL(f));
-    } else {
-      setPreview(null);
-    }
+    setPreview(f.type !== "application/pdf" ? URL.createObjectURL(f) : null);
   }
 
   async function handleUpload() {
-    if (!file) return;
+    if (!file || !orderId) return;
     setUploading(true);
     try {
       const form = new FormData();
@@ -58,7 +57,7 @@ export default function PaymentPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Chek yuborildi! Tasdiqlash kutilmoqda.");
-      router.push(`/order/${orderId}`);
+      router.push(`/order/${orderNumber}`);
     } catch {
       toast.error("Yuklashda xatolik. Qayta urinib ko'ring.");
     } finally {
@@ -66,20 +65,14 @@ export default function PaymentPage() {
     }
   }
 
-  if (isLoading) return <PaymentSkeleton />;
-  if (error || !data)
-    return <ErrorState message="Buyurtma topilmadi" onRetry={refetch} />;
-
   return (
     <div className="container mx-auto px-4 py-4 space-y-4">
       <h1 className="text-xl font-bold">Karta to&apos;lov</h1>
 
-      {/* Card details */}
-      {data.paymentMethod === "CardTransfer" && (
-        <CardInfo orderId={orderId} totalAmount={data.totalAmount} />
-      )}
+      {/* Card info */}
+      <CardInfo totalAmount={data?.totalAmount} isLoading={isLoading} />
 
-      {/* Upload area */}
+      {/* Upload */}
       <div className="rounded-xl border bg-card p-4 space-y-3">
         <h2 className="font-semibold">Chekni yuklash</h2>
         <p className="text-sm text-muted-foreground">
@@ -107,9 +100,7 @@ export default function PaymentPage() {
           ) : (
             <>
               <Upload className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Bosing yoki faylni shu yerga tashlang
-              </p>
+              <p className="text-sm text-muted-foreground">Bosing yoki faylni shu yerga tashlang</p>
               <p className="text-xs text-muted-foreground">JPG, PNG, WebP, PDF — max 5MB</p>
             </>
           )}
@@ -127,12 +118,7 @@ export default function PaymentPage() {
         />
 
         {file && (
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handleUpload}
-            disabled={uploading}
-          >
+          <Button className="w-full" size="lg" onClick={handleUpload} disabled={uploading}>
             {uploading ? "Yuklanmoqda..." : "Chekni yuborish"}
           </Button>
         )}
@@ -141,56 +127,48 @@ export default function PaymentPage() {
   );
 }
 
-function CardInfo({
-  orderId,
-  totalAmount,
-}: {
-  orderId: string;
-  totalAmount: number;
-}) {
+function CardInfo({ totalAmount, isLoading }: { totalAmount?: number; isLoading: boolean }) {
   const { data } = useQuery({
-    queryKey: ["payment-settings", orderId],
+    queryKey: ["payment-settings-public"],
     queryFn: () =>
       api
         .get<ApiResponse<{ cardNumber: string; cardHolder: string; bankName?: string }>>(
-          `/shop/payment-settings`
+          "/shop/payment-settings"
         )
         .then((r) => r.data.data),
   });
 
+  if (isLoading || !data) return <Skeleton className="h-32 w-full rounded-xl" />;
+
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3">
       <h2 className="font-semibold">Karta ma&apos;lumotlari</h2>
-      {data ? (
-        <>
-          <div className="rounded-lg bg-muted p-3 space-y-1">
-            <p className="text-xs text-muted-foreground">Karta raqami</p>
-            <p className="font-mono text-lg font-bold tracking-widest">
-              {data.cardNumber}
-            </p>
-            <p className="text-sm">{data.cardHolder}</p>
-            {data.bankName && (
-              <p className="text-xs text-muted-foreground">{data.bankName}</p>
-            )}
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">To&apos;lanadigan summa:</span>
-            <PriceTag amount={totalAmount} className="font-bold" />
-          </div>
-        </>
-      ) : (
-        <Skeleton className="h-20 w-full" />
+      <div className="rounded-lg bg-muted p-3 space-y-1">
+        <p className="text-xs text-muted-foreground">Karta raqami</p>
+        <p className="font-mono text-lg font-bold tracking-widest">{data.cardNumber}</p>
+        <p className="text-sm">{data.cardHolder}</p>
+        {data.bankName && <p className="text-xs text-muted-foreground">{data.bankName}</p>}
+      </div>
+      {totalAmount !== undefined && (
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">To&apos;lanadigan summa:</span>
+          <PriceTag amount={totalAmount} className="font-bold" />
+        </div>
       )}
     </div>
   );
 }
 
-function PaymentSkeleton() {
+export default function PaymentPage() {
   return (
-    <div className="container mx-auto px-4 py-4 space-y-4">
-      <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-32 w-full rounded-xl" />
-      <Skeleton className="h-48 w-full rounded-xl" />
-    </div>
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-4 space-y-4">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }

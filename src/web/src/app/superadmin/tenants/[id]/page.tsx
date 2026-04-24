@@ -49,18 +49,16 @@ export default function TenantDetailPage() {
 
   useEffect(() => {
     saApi
-      .get<{ data: Tenant[] }>("/superadmin/tenants", { params: { pageSize: 1000 } })
+      .get<{ data: Tenant }>(`/superadmin/tenants/${params.id}`)
       .then((r) => {
-        const found = r.data.data.find((t) => t.id === params.id);
-        if (found) {
-          setTenant(found);
-          reset({
-            status: String(found.subscriptionStatus),
-            endsAt: found.subscriptionEndsAt
-              ? new Date(found.subscriptionEndsAt).toISOString().split("T")[0]
-              : undefined,
-          });
-        }
+        const found = r.data.data;
+        setTenant(found);
+        reset({
+          status: String(found.subscriptionStatus),
+          endsAt: found.subscriptionEndsAt
+            ? new Date(found.subscriptionEndsAt).toISOString().split("T")[0]
+            : undefined,
+        });
       })
       .finally(() => setLoading(false));
   }, [params.id, reset]);

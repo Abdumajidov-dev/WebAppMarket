@@ -58,7 +58,7 @@ public class SubmitPaymentProofCommandHandler(
 
         var url = await storage.UploadAsync(
             request.FileStream, request.FileName, request.ContentType,
-            tenant.Slug, "payment", ct);
+            tenant.Slug, "tolovlar", ct);
 
         var proof = new PaymentProof
         {

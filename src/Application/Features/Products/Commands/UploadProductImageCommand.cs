@@ -53,7 +53,7 @@ public class UploadProductImageCommandHandler(
 
         var url = await storage.UploadAsync(
             request.FileStream, request.FileName, request.ContentType,
-            tenantContext.Slug, "product", ct);
+            tenantContext.Slug, "mahsulotlar", ct);
 
         var nextOrder = product.Images.Any()
             ? product.Images.Max(i => i.SortOrder) + 1

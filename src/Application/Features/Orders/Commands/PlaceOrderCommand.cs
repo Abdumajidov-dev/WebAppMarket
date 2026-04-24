@@ -16,7 +16,9 @@ public record PlaceOrderCommand(
     PaymentMethod PaymentMethod,
     string? Notes,
     List<PlaceOrderItemRequest> Items
-) : IRequest<string>;
+) : IRequest<PlaceOrderResult>;
+
+public record PlaceOrderResult(Guid Id, string OrderNumber);
 
 public class PlaceOrderCommandValidator : AbstractValidator<PlaceOrderCommand>
 {
@@ -41,9 +43,9 @@ public class PlaceOrderCommandHandler(
     IAppDbContext db,
     ITenantContext tenant,
     IBotNotificationService bot)
-    : IRequestHandler<PlaceOrderCommand, string>
+    : IRequestHandler<PlaceOrderCommand, PlaceOrderResult>
 {
-    public async Task<string> Handle(PlaceOrderCommand request, CancellationToken ct)
+    public async Task<PlaceOrderResult> Handle(PlaceOrderCommand request, CancellationToken ct)
     {
         var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
         var products = await db.Products
@@ -107,7 +109,7 @@ public class PlaceOrderCommandHandler(
 
         await bot.NotifyNewOrderAsync(order, ct);
 
-        return orderNumber;
+        return new PlaceOrderResult(order.Id, orderNumber);
     }
 
     private async Task<string> GenerateOrderNumberAsync(CancellationToken ct)

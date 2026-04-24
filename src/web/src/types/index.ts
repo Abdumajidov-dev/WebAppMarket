@@ -47,6 +47,19 @@ export interface Category {
   parentId?: string;
   sortOrder: number;
   children: Category[];
+  imageUrl?: string;
+}
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  emoji?: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  bgGradient: string;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 export interface Order {

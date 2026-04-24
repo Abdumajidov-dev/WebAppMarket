@@ -78,8 +78,8 @@ public class OrdersController(IMediator mediator, IAppDbContext db) : Controller
     [HttpPost]
     public async Task<IActionResult> Place([FromBody] PlaceOrderCommand command, CancellationToken ct)
     {
-        var orderNumber = await mediator.Send(command, ct);
-        return Ok(ApiResponse<object>.Ok(new { orderNumber }, "Buyurtma qabul qilindi."));
+        var result = await mediator.Send(command, ct);
+        return Ok(ApiResponse<object>.Ok(new { id = result.Id, orderNumber = result.OrderNumber }, "Buyurtma qabul qilindi."));
     }
 
     [Authorize]

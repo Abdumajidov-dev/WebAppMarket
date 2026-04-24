@@ -6,7 +6,7 @@ namespace UzMarket.Api.Middlewares;
 
 public class TenantMiddleware(RequestDelegate next)
 {
-    private static readonly string[] _skipPaths = ["/health", "/swagger", "/favicon.ico", "/api/v1/superadmin"];
+    private static readonly string[] _skipPaths = ["/health", "/swagger", "/favicon.ico", "/api/v1/superadmin", "/internal"];
 
     public async Task InvokeAsync(HttpContext context, AppDbContext db, TenantContext tenantContext)
     {

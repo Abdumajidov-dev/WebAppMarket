@@ -7,6 +7,7 @@ public class Category : TenantEntity
     public Guid? ParentId { get; set; }
     public Category? Parent { get; set; }
     public int SortOrder { get; set; } = 0;
+    public string? ImageUrl { get; set; }
 
     public ICollection<Category> Children { get; set; } = [];
     public ICollection<Product> Products { get; set; } = [];

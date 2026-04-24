@@ -69,6 +69,25 @@ public class SuperAdminController(AppDbContext db, IPasswordHasher hasher) : Con
         return Ok(PagedResponse<object>.Ok(items!, page, pageSize, total));
     }
 
+    // ── Get single tenant ─────────────────────────────────────────────────
+    [HttpGet("tenants/{id:guid}")]
+    public async Task<IActionResult> GetTenant(Guid id, CancellationToken ct)
+    {
+        var tenant = await db.Tenants.IgnoreQueryFilters()
+            .Where(t => t.Id == id && !t.IsDeleted)
+            .Select(t => new
+            {
+                t.Id, t.Slug, t.ShopName, t.OwnerName, t.Phone,
+                t.IsActive, t.SubscriptionStatus, t.SubscriptionEndsAt,
+                t.TelegramUsername, t.TelegramChatId, t.PrimaryColor,
+                t.CreatedAt,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (tenant is null) return NotFound();
+        return Ok(ApiResponse<object>.Ok(tenant));
+    }
+
     // ── Create tenant + owner ──────────────────────────────────────────────
     [HttpPost("tenants")]
     public async Task<IActionResult> CreateTenant(
@@ -80,25 +99,32 @@ public class SuperAdminController(AppDbContext db, IPasswordHasher hasher) : Con
         if (slugExists)
             return BadRequest(ApiResponse<string>.Fail("Bu slug band."));
 
+        var tenantId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
         var tenant = new Tenant
         {
-            Id = Guid.NewGuid(),
+            Id = tenantId,
             Slug = req.Slug.ToLower().Trim(),
             ShopName = req.ShopName,
             OwnerName = req.OwnerName,
             Phone = req.Phone,
             PrimaryColor = req.PrimaryColor ?? "#2563EB",
+            TelegramUsername = string.IsNullOrWhiteSpace(req.TelegramUsername)
+                ? null
+                : req.TelegramUsername.TrimStart('@').Trim(),
             SubscriptionStatus = SubscriptionStatus.Trial,
             SubscriptionEndsAt = DateTime.UtcNow.AddDays(req.TrialDays),
             IsActive = true,
+            OwnerUserId = userId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
 
         var user = new User
         {
-            Id = Guid.NewGuid(),
-            TenantId = tenant.Id,
+            Id = userId,
+            TenantId = tenantId,
             Phone = req.Phone,
             PasswordHash = hasher.Hash(req.Password),
             Role = UserRole.Owner,
@@ -171,6 +197,7 @@ public record CreateTenantRequest(
     string Phone,
     string Password,
     string? PrimaryColor,
+    string? TelegramUsername,
     int TrialDays = 30);
 
 public record UpdateSubscriptionRequest(

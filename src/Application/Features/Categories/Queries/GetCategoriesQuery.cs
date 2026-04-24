@@ -34,6 +34,6 @@ public class GetCategoriesQueryHandler(IAppDbContext db)
 
         return new CategoryTreeDto(
             node.Id, node.Name, node.Slug,
-            node.ParentId, node.SortOrder, children);
+            node.ParentId, node.SortOrder, children, node.ImageUrl);
     }
 }

@@ -16,7 +16,7 @@ public class LocalFileStorageService(IWebHostEnvironment env, IConfiguration con
         CancellationToken ct = default)
     {
         var wwwroot = Path.Combine(env.ContentRootPath, "wwwroot");
-        var folder = Path.Combine(wwwroot, tenantSlug, fileType);
+        var folder = Path.Combine(wwwroot, "rasmlar", fileType);
         Directory.CreateDirectory(folder);
 
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -26,19 +26,29 @@ public class LocalFileStorageService(IWebHostEnvironment env, IConfiguration con
         await using var fs = File.Create(fullPath);
         await fileStream.CopyToAsync(fs, ct);
 
-        var mediaBaseUrl = configuration["MediaBaseUrl"]?.TrimEnd('/') ?? "http://localhost:5000";
-        return $"{mediaBaseUrl}/{tenantSlug}/{fileType}/{uniqueName}";
+        return $"/media/rasmlar/{fileType}/{uniqueName}";
     }
 
     public Task DeleteAsync(string fileUrl, CancellationToken ct = default)
     {
         try
         {
-            var uri = new Uri(fileUrl);
-            var path = uri.AbsolutePath.TrimStart('/');
-            // strip "media/" prefix if present (proxy URLs)
-            if (path.StartsWith("media/", StringComparison.OrdinalIgnoreCase))
-                path = path["media/".Length..];
+            // Handle both relative (/media/rasmlar/...) and absolute URLs
+            string path;
+            if (fileUrl.StartsWith("http://") || fileUrl.StartsWith("https://"))
+            {
+                var uri = new Uri(fileUrl);
+                path = uri.AbsolutePath.TrimStart('/');
+                if (path.StartsWith("media/", StringComparison.OrdinalIgnoreCase))
+                    path = path["media/".Length..];
+            }
+            else
+            {
+                path = fileUrl.TrimStart('/');
+                if (path.StartsWith("media/", StringComparison.OrdinalIgnoreCase))
+                    path = path["media/".Length..];
+            }
+
             var relativePath = path.Replace('/', Path.DirectorySeparatorChar);
             var fullPath = Path.Combine(env.ContentRootPath, "wwwroot", relativePath);
             if (File.Exists(fullPath))

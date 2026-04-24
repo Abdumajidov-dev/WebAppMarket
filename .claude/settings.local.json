@@ -76,7 +76,14 @@
       "Bash(curl *)",
       "Bash(docker exec *)",
       "Bash(netsh advfirewall *)",
-      "PowerShell(netsh advfirewall *)"
+      "PowerShell(netsh advfirewall *)",
+      "Bash(cloudflared *)",
+      "Bash(winget install *)",
+      "Bash(where cloudflared *)",
+      "Bash(taskkill /PID 36416 /F)",
+      "PowerShell(Stop-Process *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); items=d.get\\('data',[]\\); print\\(f'Count: {len\\(items\\)}'\\); [print\\(i['name']\\) for i in items[:3]]\")",
+      "Bash(docker build *)"
     ]
   }
 }

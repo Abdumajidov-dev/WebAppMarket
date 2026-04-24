@@ -6,7 +6,13 @@ from utils.i18n import t
 
 
 def main_menu_kb(lang: str, webapp_url: str) -> ReplyKeyboardMarkup:
-    shop_btn = KeyboardButton(text=t("btn_menu", lang))
+    if webapp_url.startswith("https://"):
+        shop_btn = KeyboardButton(
+            text=t("btn_menu", lang),
+            web_app=WebAppInfo(url=webapp_url),
+        )
+    else:
+        shop_btn = KeyboardButton(text=t("btn_menu", lang))
     return ReplyKeyboardMarkup(
         keyboard=[
             [shop_btn],

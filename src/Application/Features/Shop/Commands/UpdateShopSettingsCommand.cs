@@ -12,7 +12,8 @@ public record UpdateShopSettingsCommand(
     string OwnerName,
     string Phone,
     string PrimaryColor,
-    long? TelegramChatId
+    long? TelegramChatId,
+    string? TelegramUsername
 ) : IRequest;
 
 public class UpdateShopSettingsCommandValidator : AbstractValidator<UpdateShopSettingsCommand>
@@ -45,6 +46,9 @@ public class UpdateShopSettingsCommandHandler(IAppDbContext db, ITenantContext t
         shop.Phone = request.Phone;
         shop.PrimaryColor = request.PrimaryColor;
         shop.TelegramChatId = request.TelegramChatId;
+        shop.TelegramUsername = string.IsNullOrWhiteSpace(request.TelegramUsername)
+            ? null
+            : request.TelegramUsername.TrimStart('@').Trim();
         shop.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
