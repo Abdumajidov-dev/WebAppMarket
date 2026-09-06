@@ -16,6 +16,7 @@ public interface IAppDbContext
     DbSet<PaymentSetting> PaymentSettings { get; }
     DbSet<PaymentProof> PaymentProofs { get; }
     DbSet<Banner> Banners { get; }
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

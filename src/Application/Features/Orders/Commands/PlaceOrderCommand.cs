@@ -101,6 +101,16 @@ public class PlaceOrderCommandHandler(
         };
 
         db.Orders.Add(order);
+
+        db.Notifications.Add(new Notification
+        {
+            TenantId = tenant.TenantId,
+            Type = NotificationType.NewOrder,
+            Title = "Yangi buyurtma",
+            Message = $"{order.CustomerName} tomonidan {orderNumber} raqamli buyurtma tushdi.",
+            OrderId = order.Id
+        });
+
         await db.SaveChangesAsync(ct);
 
         // Load navigation props for bot notification

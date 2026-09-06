@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<PaymentSetting> PaymentSettings => Set<PaymentSetting>();
     public DbSet<PaymentProof> PaymentProofs => Set<PaymentProof>();
     public DbSet<Banner> Banners => Set<Banner>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     private Guid CurrentTenantId => tenantContext.TenantId;
 
@@ -32,5 +33,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         builder.Entity<PaymentSetting>().HasQueryFilter(ps => ps.TenantId == CurrentTenantId && !ps.IsDeleted);
         builder.Entity<PaymentProof>().HasQueryFilter(pp => pp.TenantId == CurrentTenantId && !pp.IsDeleted);
         builder.Entity<Banner>().HasQueryFilter(b => b.TenantId == CurrentTenantId && !b.IsDeleted);
+        builder.Entity<Notification>().HasQueryFilter(n => n.TenantId == CurrentTenantId && !n.IsDeleted);
     }
 }

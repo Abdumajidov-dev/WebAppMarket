@@ -39,3 +39,9 @@ public enum PaymentProofFileType
     Image = 0,
     Pdf = 1
 }
+
+public enum NotificationType
+{
+    NewOrder = 0,
+    PaymentProofSubmitted = 1
+}

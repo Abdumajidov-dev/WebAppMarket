@@ -46,6 +46,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         .then((r) => r.data.data),
   });
 
+  const { data: unreadCount } = useQuery({
+    queryKey: ["admin-notifications-unread-count"],
+    queryFn: () =>
+      api.get<ApiResponse<{ count: number }>>("/notifications/unread-count")
+        .then((r) => r.data.data.count),
+    refetchInterval: 30_000,
+  });
+
   async function handleLogout() {
     try {
       await api.post("/auth/logout");
@@ -71,7 +79,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <Icon className="h-4 w-4 shrink-0" />
+          <span className="relative shrink-0">
+            <Icon className="h-4 w-4" />
+            {href === "/admin/notifications" && !!unreadCount && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </span>
           {label}
         </Link>
       ))}

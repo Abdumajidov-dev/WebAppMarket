@@ -120,3 +120,15 @@ export type PaymentStatus =
   | "ProofSubmitted"
   | "Paid"
   | "Failed";
+
+export type NotificationType = "NewOrder" | "PaymentProofSubmitted";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  orderId?: string;
+  isRead: boolean;
+  createdAt: string;
+}

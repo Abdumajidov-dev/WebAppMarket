@@ -73,6 +73,16 @@ public class SubmitPaymentProofCommandHandler(
         order.UpdatedAt = DateTime.UtcNow;
 
         db.PaymentProofs.Add(proof);
+
+        db.Notifications.Add(new Notification
+        {
+            TenantId = tenant.TenantId,
+            Type = NotificationType.PaymentProofSubmitted,
+            Title = "To'lov cheki yuklandi",
+            Message = $"{order.OrderNumber} raqamli buyurtma uchun to'lov cheki yuklandi.",
+            OrderId = order.Id
+        });
+
         await db.SaveChangesAsync(ct);
 
         await bot.NotifyPaymentProofAsync(order, proof, ct);
