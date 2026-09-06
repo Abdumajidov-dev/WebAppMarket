@@ -34,9 +34,11 @@ public class AuthController(IMediator mediator) : ControllerBase
         if (string.IsNullOrEmpty(token))
             return Unauthorized(ApiResponse<string>.Fail("Refresh token topilmadi."));
 
-        var accessToken = await mediator.Send(new RefreshTokenCommand(token), ct);
+        var result = await mediator.Send(new RefreshTokenCommand(token), ct);
 
-        return Ok(ApiResponse<object>.Ok(new { accessToken }));
+        SetRefreshCookie(result.RefreshToken);
+
+        return Ok(ApiResponse<object>.Ok(new { accessToken = result.AccessToken }));
     }
 
     [Authorize]

@@ -16,13 +16,29 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+let refreshPromise: Promise<string> | null = null;
+
+function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = api
+      .post<{ data: { accessToken: string } }>("/auth/refresh")
+      .then((res) => res.data.data.accessToken)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !err.config?._retried) {
       try {
-        const res = await api.post<{ data: { accessToken: string } }>("/auth/refresh");
-        setAuthToken(res.data.data.accessToken);
+        const accessToken = await refreshAccessToken();
+        setAuthToken(accessToken);
+        err.config._retried = true;
+        err.config.headers = { ...err.config.headers, Authorization: `Bearer ${accessToken}` };
         return api.request(err.config);
       } catch {
         setAuthToken(null);

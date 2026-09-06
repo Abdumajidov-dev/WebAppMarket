@@ -5,12 +5,14 @@ using UzMarket.Domain.Exceptions;
 
 namespace UzMarket.Application.Features.Auth.Commands;
 
-public record RefreshTokenCommand(string RefreshToken) : IRequest<string>;
+public record RefreshTokenCommand(string RefreshToken) : IRequest<RefreshTokenResult>;
+
+public record RefreshTokenResult(string AccessToken, string RefreshToken);
 
 public class RefreshTokenCommandHandler(IAppDbContext db, IJwtService jwt, IPasswordHasher hasher)
-    : IRequestHandler<RefreshTokenCommand, string>
+    : IRequestHandler<RefreshTokenCommand, RefreshTokenResult>
 {
-    public async Task<string> Handle(RefreshTokenCommand request, CancellationToken ct)
+    public async Task<RefreshTokenResult> Handle(RefreshTokenCommand request, CancellationToken ct)
     {
         var candidates = await db.RefreshTokens
             .Include(t => t.User)
@@ -33,6 +35,6 @@ public class RefreshTokenCommandHandler(IAppDbContext db, IJwtService jwt, IPass
 
         await db.SaveChangesAsync(ct);
 
-        return jwt.GenerateAccessToken(stored.User);
+        return new RefreshTokenResult(jwt.GenerateAccessToken(stored.User), newRaw);
     }
 }
